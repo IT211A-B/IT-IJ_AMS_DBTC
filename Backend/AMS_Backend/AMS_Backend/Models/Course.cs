@@ -1,0 +1,13 @@
+﻿namespace AMS_Backend.Models
+{
+    public class Course
+    {
+        public int CourseId { get; set; }
+
+        public int TeacherID {get; set; } 
+
+        public string CourseName { get; set; }
+
+        public string Description { get; set; }
+    }
+}
