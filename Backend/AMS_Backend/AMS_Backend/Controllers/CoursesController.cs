@@ -1,4 +1,5 @@
 ﻿using AMS_Backend.DTO.CourseDTO;
+using AMS_Backend.DTO.StudentDTO;
 using AMS_Backend.Services.ServiceCourse;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,12 +16,30 @@ namespace AMS_Backend.Controllers
             _courseService = courseService;
         }
 
+        /// <summary>
+        /// Get all courses with optional pagination
+        /// </summary>
+        /// <param name="page">Page number (default = 1)</param>
+        /// <param name="pageSize">Number of records per page (default = 10)</param>
+        /// <response code="200">Returns list of courses</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadCourseDTO>>> GetCourses()
+        public async Task<ActionResult<IEnumerable<ReadCourseDTO>>> GetCourse(int page = 1, int pageSize = 10)
         {
-            return Ok(await _courseService.GetAllCourses());
+            var courses = await _courseService.GetAllCourses();
+
+            var paged = courses 
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+
+            return Ok(paged);
         }
 
+        /// <summary>
+        /// Get a single course by ID
+        /// </summary>
+        /// <param name="id">Course ID</param>
+        /// <response code="200">Course found</response>
+        /// <response code="404">Course not found</response>
         [HttpGet("{id}")]
         public async Task<ActionResult<ReadCourseDTO>> GetCourse(int id)
         {
@@ -29,6 +48,11 @@ namespace AMS_Backend.Controllers
             return Ok(course);
         }
 
+        /// <summary>
+        /// Create a new course
+        /// </summary>
+        /// <response code="201">Course created successfully</response>
+        /// <response code="400">Invalid input</response>
         [HttpPost]
         public async Task<ActionResult<ReadCourseDTO>> PostCourse(CreateCourseDTO courseDto)
         {
@@ -36,6 +60,12 @@ namespace AMS_Backend.Controllers
             return CreatedAtAction(nameof(GetCourse), new { id = course.CourseId }, course);
         }
 
+        /// <summary>
+        /// Update an existing course
+        /// </summary>
+        /// <param name="id">Course ID</param>
+        /// <response code="204">Course updated successfully</response>
+        /// <response code="404">Course not found</response>
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCourse(int id, UpdateCourseDTO courseDto)
         {
@@ -43,6 +73,12 @@ namespace AMS_Backend.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Delete a course by ID
+        /// </summary>
+        /// <param name="id">Course ID</param>
+        /// <response code="204">Course deleted successfully</response>
+        /// <response code="404">Course not found</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)
         {

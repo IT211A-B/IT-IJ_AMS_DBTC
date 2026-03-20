@@ -1,9 +1,11 @@
-﻿namespace AMS_Backend.DTO.TeacherDTO
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AMS_Backend.DTO.TeacherDTO
 {
     public class CreateTeacherDTO
     {
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        [Required] public string FirstName { get; set; } = string.Empty;
+        [Required] public string LastName { get; set; } = string.Empty;
+        [Required] public string Email { get; set; } = string.Empty;
     }
 }

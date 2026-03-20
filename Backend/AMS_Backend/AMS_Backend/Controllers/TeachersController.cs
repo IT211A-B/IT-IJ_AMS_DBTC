@@ -1,4 +1,5 @@
-﻿using AMS_Backend.DTO.TeacherDTO;
+﻿using AMS_Backend.DTO.StudentDTO;
+using AMS_Backend.DTO.TeacherDTO;
 using AMS_Backend.Services.ServiceTeacher;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,12 +16,31 @@ namespace AMS_Backend.Controllers
             _teacherService = teacherService;
         }
 
+        /// <summary>
+        /// Get all teachers with optional pagination
+        /// </summary>
+        /// <param name="page">Page number (default = 1)</param>
+        /// <param name="pageSize">Number of records per page (default = 10)</param>
+        /// <response code="200">Returns list of teachers</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadTeacherDTO>>> GetTeachers()
+        public async Task<ActionResult<IEnumerable<ReadTeacherDTO>>> GetTeachers(int page = 1, int pageSize = 10)
         {
-            return Ok(await _teacherService.GetAllTeachers());
+            var teachers = await _teacherService.GetAllTeachers();
+
+            var paged = teachers
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+
+            return Ok(paged);
         }
 
+
+        /// <summary>
+        /// Get a single teacher by ID
+        /// </summary>
+        /// <param name="id">Teacher ID</param>
+        /// <response code="200">Teacher found</response>
+        /// <response code="404">Teacher not found</response>
         [HttpGet("{id}")]
         public async Task<ActionResult<ReadTeacherDTO>> GetTeacher(int id)
         {
@@ -29,6 +49,11 @@ namespace AMS_Backend.Controllers
             return Ok(teacher);
         }
 
+        /// <summary>
+        /// Create a new teacher
+        /// </summary>
+        /// <response code="201">Teacher created successfully</response>
+        /// <response code="400">Invalid input</response>
         [HttpPost]
         public async Task<ActionResult<ReadTeacherDTO>> PostTeacher(CreateTeacherDTO teacherDto)
         {
@@ -36,6 +61,12 @@ namespace AMS_Backend.Controllers
             return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacher);
         }
 
+        /// <summary>
+        /// Update an existing teacher
+        /// </summary>
+        /// <param name="id">Teacher ID</param>
+        /// <response code="204">Teacher updated successfully</response>
+        /// <response code="404">Teacher not found</response>
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTeacher(int id, UpdateTeacherDTO teacherDto)
         {
@@ -43,6 +74,12 @@ namespace AMS_Backend.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Delete a teacher by ID
+        /// </summary>
+        /// <param name="id">Teacher ID</param>
+        /// <response code="204">Teacher deleted successfully</response>
+        /// <response code="404">Teacher not found</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTeacher(int id)
         {

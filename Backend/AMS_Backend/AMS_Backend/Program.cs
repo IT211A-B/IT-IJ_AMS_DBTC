@@ -4,6 +4,7 @@ using AMS_Backend.Services.ServiceCourse;
 using AMS_Backend.Services.ServiceStudent;
 using AMS_Backend.Services.ServiceTeacher;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +35,13 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 
 // Learn more about configuring Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+
+    options.IncludeXmlComments(xmlPath);
+});
 
 var app = builder.Build();
 
