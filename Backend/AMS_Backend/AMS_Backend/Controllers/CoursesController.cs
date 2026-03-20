@@ -1,7 +1,6 @@
-﻿using AMS_Backend.Data;
-using AMS_Backend.Models;
+﻿using AMS_Backend.DTO.CourseDTO;
+using AMS_Backend.Services.ServiceCourse;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AMS_Backend.Controllers
 {
@@ -9,76 +8,45 @@ namespace AMS_Backend.Controllers
     [ApiController]
     public class CoursesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICourseService _courseService;
 
-        public CoursesController(ApplicationDbContext context)
+        public CoursesController(ICourseService courseService)
         {
-            _context = context;
+            _courseService = courseService;
         }
 
-        // GET: api/courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Course>>> GetCourses()
+        public async Task<ActionResult<IEnumerable<ReadCourseDTO>>> GetCourses()
         {
-            return await _context.Courses.ToListAsync();
+            return Ok(await _courseService.GetAllCourses());
         }
 
-        // GET: api/courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Course>> GetCourse(int id)
+        public async Task<ActionResult<ReadCourseDTO>> GetCourse(int id)
         {
-            var course = await _context.Courses.FindAsync(id);
-            if (course == null)
-                return NotFound();
-
-            return course;
+            var course = await _courseService.GetCourseById(id);
+            if (course == null) return NotFound();
+            return Ok(course);
         }
 
-        // POST: api/courses
         [HttpPost]
-        public async Task<ActionResult<Course>> PostCourse(Course course)
+        public async Task<ActionResult<ReadCourseDTO>> PostCourse(CreateCourseDTO courseDto)
         {
-            _context.Courses.Add(course);
-            await _context.SaveChangesAsync();
-
+            var course = await _courseService.AddCourse(courseDto);
             return CreatedAtAction(nameof(GetCourse), new { id = course.CourseId }, course);
         }
 
-        // PUT: api/courses/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCourse(int id, Course course)
+        public async Task<IActionResult> PutCourse(int id, UpdateCourseDTO courseDto)
         {
-            if (id != course.CourseId)
-                return BadRequest();
-
-            _context.Entry(course).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Courses.Any(e => e.CourseId == id))
-                    return NotFound();
-                else
-                    throw;
-            }
-
+            await _courseService.UpdateCourse(id, courseDto);
             return NoContent();
         }
 
-        // DELETE: api/courses/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
-            var course = await _context.Courses.FindAsync(id);
-            if (course == null)
-                return NotFound();
-
-            _context.Courses.Remove(course);
-            await _context.SaveChangesAsync();
-
+            await _courseService.DeleteCourse(id);
             return NoContent();
         }
     }

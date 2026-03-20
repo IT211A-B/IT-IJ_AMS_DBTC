@@ -1,7 +1,6 @@
-﻿using AMS_Backend.Data;
-using AMS_Backend.Models;
+﻿using AMS_Backend.DTO.StudentDTO;
+using AMS_Backend.Services.ServiceStudent;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AMS_Backend.Controllers
 {
@@ -9,87 +8,54 @@ namespace AMS_Backend.Controllers
     [ApiController]
     public class StudentsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IStudentService _studentService;
 
-        public StudentsController(ApplicationDbContext context)
+        public StudentsController(IStudentService studentService)
         {
-            _context = context;
+            _studentService = studentService;
         }
 
-        // GET: api/students
+        // GET ALL
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Student>>> GetStudents()
+        public async Task<ActionResult<IEnumerable<ReadStudentDTO>>> GetStudents()
         {
-            return await _context.Students.ToListAsync();
+            return Ok(await _studentService.GetAllStudents());
         }
 
-        // GET: api/students/5
+        // GET BY ID
         [HttpGet("{id}")]
-        public async Task<ActionResult<Student>> GetStudent(int id)
+        public async Task<ActionResult<ReadStudentDTO>> GetStudent(int id)
         {
-            var student = await _context.Students.FindAsync(id);
+            var student = await _studentService.GetStudentById(id);
 
             if (student == null)
-            {
                 return NotFound();
-            }
 
-            return student;
+            return Ok(student);
         }
 
-        // POST: api/students
+        // CREATE
         [HttpPost]
-        public async Task<ActionResult<Student>> PostStudent(Student student)
+        public async Task<ActionResult<ReadStudentDTO>> PostStudent(CreateStudentDTO dto)
         {
-            _context.Students.Add(student);
-            await _context.SaveChangesAsync();
+            var newStudent = await _studentService.AddStudent(dto);
 
-            return CreatedAtAction(nameof(GetStudent), new { id = student.StudentId }, student);
+            return CreatedAtAction(nameof(GetStudent), new { id = newStudent.StudentId }, newStudent);
         }
 
-        // PUT: api/students/5
+        // UPDATE
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutStudent(int id, Student student)
+        public async Task<IActionResult> PutStudent(int id, UpdateStudentDTO dto)
         {
-            if (id != student.StudentId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(student).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Students.Any(e => e.StudentId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _studentService.UpdateStudent(id, dto);
             return NoContent();
         }
 
-        // DELETE: api/students/5
+        // DELETE
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStudent(int id)
         {
-            var student = await _context.Students.FindAsync(id);
-            if (student == null)
-            {
-                return NotFound();
-            }
-
-            _context.Students.Remove(student);
-            await _context.SaveChangesAsync();
-
+            await _studentService.DeleteStudent(id);
             return NoContent();
         }
     }

@@ -1,7 +1,6 @@
-﻿using AMS_Backend.Data;
-using AMS_Backend.Models;
+﻿using AMS_Backend.DTO.TeacherDTO;
+using AMS_Backend.Services.ServiceTeacher;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AMS_Backend.Controllers
 {
@@ -9,87 +8,45 @@ namespace AMS_Backend.Controllers
     [ApiController]
     public class TeachersController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITeacherService _teacherService;
 
-        public TeachersController(ApplicationDbContext context)
+        public TeachersController(ITeacherService teacherService)
         {
-            _context = context;
+            _teacherService = teacherService;
         }
 
-        // GET: api/teachers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Teacher>>> GetTeachers()
+        public async Task<ActionResult<IEnumerable<ReadTeacherDTO>>> GetTeachers()
         {
-            return await _context.Teachers.ToListAsync();
+            return Ok(await _teacherService.GetAllTeachers());
         }
 
-        // GET: api/teachers/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Teacher>> GetTeacher(int id)
+        public async Task<ActionResult<ReadTeacherDTO>> GetTeacher(int id)
         {
-            var teacher = await _context.Teachers.FindAsync(id);
-
-            if (teacher == null)
-            {
-                return NotFound();
-            }
-
-            return teacher;
+            var teacher = await _teacherService.GetTeacherById(id);
+            if (teacher == null) return NotFound();
+            return Ok(teacher);
         }
 
-        // POST: api/teachers
         [HttpPost]
-        public async Task<ActionResult<Teacher>> PostTeacher(Teacher teacher)
+        public async Task<ActionResult<ReadTeacherDTO>> PostTeacher(CreateTeacherDTO teacherDto)
         {
-            _context.Teachers.Add(teacher);
-            await _context.SaveChangesAsync();
-
+            var teacher = await _teacherService.AddTeacher(teacherDto);
             return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacher);
         }
 
-        // PUT: api/teachers/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTeacher(int id, Teacher teacher)
+        public async Task<IActionResult> PutTeacher(int id, UpdateTeacherDTO teacherDto)
         {
-            if (id != teacher.TeacherId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(teacher).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Teachers.Any(e => e.TeacherId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _teacherService.UpdateTeacher(id, teacherDto);
             return NoContent();
         }
 
-        // DELETE: api/teachers/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTeacher(int id)
         {
-            var teacher = await _context.Teachers.FindAsync(id);
-            if (teacher == null)
-            {
-                return NotFound();
-            }
-
-            _context.Teachers.Remove(teacher);
-            await _context.SaveChangesAsync();
-
+            await _teacherService.DeleteTeacher(id);
             return NoContent();
         }
     }
