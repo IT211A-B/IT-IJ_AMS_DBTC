@@ -1,0 +1,155 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="g-search">
+    <i class="bi bi-search"></i>
+    <input type="text" placeholder="Search by name or email ...">
+</div>
+
+<div class="page-hd">
+    <h2>Courses</h2>
+    <p>Manage courses information</p>
+</div>
+
+<div class="action-row">
+    <div></div>
+    <button class="btn btn-green" onclick="openAddModal()">
+        <i class="bi bi-plus-lg"></i> Add Course
+    </button>
+</div>
+
+<div class="data-card">
+    <div class="data-card-toolbar">
+        <span class="filter-pill">
+            <i class="bi bi-grid-3x3-gap-fill"></i> All Classes <i class="bi bi-chevron-down"></i>
+        </span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th class="td-id">CourseID</th>
+                <th>Course Name</th>
+                <th>Course Description</th>
+                <th class="td-act">Action</th>
+            </tr>
+        </thead>
+        <tbody id="courseBody">
+            <tr><td colspan="4" class="td-empty">Loading courses...</td></tr>
+        </tbody>
+    </table>
+    <div class="tbl-foot">
+        <span id="courseCount">Showing 0 courses</span>
+        <div class="pages">
+            <button class="pg">Previous</button>
+            <button class="pg active">1</button>
+            <button class="pg">2</button>
+            <button class="pg">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="courseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:10px;width:560px;max-width:95%;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+        <div style="background:var(--green-dark);color:#fff;padding:13px 18px;font-weight:600;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;">
+            <span id="modalTitle">Add Course Details</span>
+            <button onclick="closeModal()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:20px 18px 6px;background:var(--green-card);">
+            <input type="hidden" id="courseId">
+            <div class="fgroup">
+                <label class="flabel">Course ID</label>
+                <div class="id-wrap">
+                    <span class="id-prefix">#</span>
+                    <input type="text" id="courseCode" style="flex:1;background:transparent;border:none;outline:none;padding:0 9px;color:#fff;font-size:0.85rem;font-family:inherit;">
+                </div>
+            </div>
+            <div class="fg2">
+                <div class="fgroup">
+                    <label class="flabel">Course Name*</label>
+                    <input type="text" id="courseName" class="finput">
+                </div>
+                <div class="fgroup">
+                    <label class="flabel">Course Description*</label>
+                    <input type="text" id="courseDesc" class="finput">
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:11px 18px;background:var(--green-card-header);border-top:1px solid var(--green-card-border);">
+            <button class="btn btn-back" onclick="closeModal()"><i class="bi bi-arrow-left"></i> Back to List</button>
+            <button class="btn btn-green" id="saveBtn" onclick="saveCourse()"><i class="bi bi-plus-lg"></i> Add Course</button>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;">
+    <div class="del-card" style="margin:auto;">
+        <div class="del-body">
+            <div class="del-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="del-question">Are you sure you want to delete this course?</div>
+            <div class="del-info">
+                <div class="del-row"><span>Course ID :</span> #<span id="delId"></span></div>
+                <div class="del-row"><span>Course Name :</span> <span id="delName"></span></div>
+                <div class="del-row"><span>Course Description :</span> <span id="delDesc"></span></div>
+            </div>
+        </div>
+        <div class="del-actions">
+            <button class="btn btn-back" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()"><i class="bi bi-trash-fill"></i> Delete Course</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'https://localhost:7152/api/courses';
+    let deleteId = null;
+
+    async function loadCourses() {
+      try {
+        const data = await fetch(API).then(r => r.json());
+        document.getElementById('courseCount').textContent = `Showing ${data.length} courses`;
+        const tbody = document.getElementById('courseBody');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="4" class="td-empty">No courses found.</td></tr>'; return; }
+        tbody.innerHTML = data.map((c, i) => `
+          <tr>
+            <td class="td-id">${i + 1}</td>
+            <td>${c.courseName}</td>
+            <td>${c.description ?? '—'}</td>
+            <td class="td-act">
+              <a class="ib ib-edit" onclick="openEditModal(${c.id},'${c.courseName}','${c.description ?? ''}')" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+              <a class="ib ib-delete" onclick="openDeleteModal(${c.id},'${c.courseName}','${c.description ?? ''}')" title="Delete"><i class="bi bi-trash-fill"></i></a>
+            </td>
+          </tr>`).join('');
+      } catch { document.getElementById('courseBody').innerHTML = '<tr><td colspan="4" class="td-empty">Could not load courses. Is the API running?</td></tr>'; }
+    }
+
+    function openAddModal() {
+      ['courseId','courseCode','courseName','courseDesc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('modalTitle').textContent = 'Add Course Details';
+      document.getElementById('saveBtn').innerHTML = '<i class="bi bi-plus-lg"></i> Add Course';
+      document.getElementById('courseModal').style.display = 'flex';
+    }
+    function openEditModal(id, name, desc) {
+      document.getElementById('courseId').value = id;
+      document.getElementById('courseCode').value = id;
+      document.getElementById('courseName').value = name;
+      document.getElementById('courseDesc').value = desc;
+      document.getElementById('modalTitle').textContent = 'Edit Course Details';
+      document.getElementById('saveBtn').innerHTML = '<i class="bi bi-arrow-repeat"></i> Update Course';
+      document.getElementById('courseModal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('courseModal').style.display = 'none'; }
+    async function saveCourse() {
+      const id = document.getElementById('courseId').value;
+      const body = { courseName: document.getElementById('courseName').value, description: document.getElementById('courseDesc').value };
+      await fetch(id ? `${API}/${id}` : API, { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      closeModal(); loadCourses();
+    }
+    function openDeleteModal(id, name, desc) { deleteId = id; document.getElementById('delId').textContent = id; document.getElementById('delName').textContent = name; document.getElementById('delDesc').textContent = desc || '—'; document.getElementById('deleteModal').style.display = 'flex'; }
+    function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
+    async function confirmDelete() { await fetch(`${API}/${deleteId}`, { method: 'DELETE' }); closeDeleteModal(); loadCourses(); }
+
+    loadCourses();
+</script>

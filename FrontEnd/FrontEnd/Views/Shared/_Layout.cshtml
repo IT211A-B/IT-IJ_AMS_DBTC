@@ -1,0 +1,80 @@
+﻿@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true">
+</head>
+<body>
+
+    <header class="topbar">
+        <span class="topbar-title">Admin Dashboard</span>
+        <div class="topbar-icons">
+            <i class="bi bi-gear-fill"></i>
+            <i class="bi bi-person-circle"></i>
+        </div>
+    </header>
+
+    <div class="app">
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                <div class="logo-ring">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="logo-name">Attendance<br>Manager</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item @(action == "Dashboard" ? "active" : "")"
+                   asp-controller="Account" asp-action="Dashboard">
+                    <span class="nl"><i class="bi bi-grid-1x2"></i><span>Dashboard</span></span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+                <a class="nav-item @(action == "Students" ? "active" : "")"
+                   asp-controller="Account" asp-action="Students">
+                    <span class="nl"><i class="bi bi-people"></i><span>Students</span></span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+                <a class="nav-item @(action == "Teachers" ? "active" : "")"
+                   asp-controller="Account" asp-action="Teachers">
+                    <span class="nl"><i class="bi bi-person-badge"></i><span>Teachers</span></span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+                <a class="nav-item @(action == "Courses" ? "active" : "")"
+                   asp-controller="Account" asp-action="Courses">
+                    <span class="nl"><i class="bi bi-book"></i><span>Course</span></span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+            </nav>
+
+            <div class="sidebar-user">
+                <div class="user-row">
+                    <div class="user-avatar">MA</div>
+                    <div>
+                        <div class="user-name">Martin Aranzado</div>
+                        <div class="user-role">Admin</div>
+                    </div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-logout">
+                        <i class="bi bi-box-arrow-right"></i><span>Log Out</span>
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+</body>
+</html>

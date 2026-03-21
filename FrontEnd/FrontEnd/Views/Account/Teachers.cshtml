@@ -1,0 +1,159 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="g-search">
+    <i class="bi bi-search"></i>
+    <input type="text" placeholder="Search by name or email ...">
+</div>
+
+<div class="page-hd">
+    <h2>Teachers</h2>
+    <p>Manage teachers information and records</p>
+</div>
+
+<div class="action-row">
+    <div></div>
+    <button class="btn btn-green" onclick="openAddModal()">
+        <i class="bi bi-plus-lg"></i> Add Teachers
+    </button>
+</div>
+
+<div class="data-card">
+    <div class="data-card-toolbar">
+        <span class="filter-pill">
+            <i class="bi bi-grid-3x3-gap-fill"></i> All Classes <i class="bi bi-chevron-down"></i>
+        </span>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th class="td-id">ID</th>
+                <th>Teachers</th>
+                <th>Email</th>
+                <th class="td-act">Action</th>
+            </tr>
+        </thead>
+        <tbody id="teacherBody">
+            <tr><td colspan="4" class="td-empty">Loading teachers...</td></tr>
+        </tbody>
+    </table>
+    <div class="tbl-foot">
+        <span id="teacherCount">Showing 0 teachers</span>
+        <div class="pages">
+            <button class="pg">Previous</button>
+            <button class="pg active">1</button>
+            <button class="pg">2</button>
+            <button class="pg">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="teacherModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:10px;width:560px;max-width:95%;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+        <div style="background:var(--green-dark);color:#fff;padding:13px 18px;font-weight:600;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;">
+            <span id="modalTitle">Add Teachers Details</span>
+            <button onclick="closeModal()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:20px 18px 6px;background:var(--green-card);">
+            <input type="hidden" id="teacherId">
+            <div class="fgroup">
+                <label class="flabel">Teachers Number</label>
+                <div class="id-wrap">
+                    <span class="id-prefix">#</span>
+                    <input type="text" id="teacherNumber" style="flex:1;background:transparent;border:none;outline:none;padding:0 9px;color:#fff;font-size:0.85rem;font-family:inherit;">
+                </div>
+            </div>
+            <div class="fg3">
+                <div class="fgroup">
+                    <label class="flabel">First Name*</label>
+                    <input type="text" id="firstName" class="finput">
+                </div>
+                <div class="fgroup">
+                    <label class="flabel">Last Name*</label>
+                    <input type="text" id="lastName" class="finput">
+                </div>
+                <div class="fgroup">
+                    <label class="flabel">Email*</label>
+                    <input type="email" id="email" class="finput">
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:11px 18px;background:var(--green-card-header);border-top:1px solid var(--green-card-border);">
+            <button class="btn btn-back" onclick="closeModal()"><i class="bi bi-arrow-left"></i> Back to List</button>
+            <button class="btn btn-green" id="saveBtn" onclick="saveTeacher()"><i class="bi bi-plus-lg"></i> Add Teachers</button>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;">
+    <div class="del-card" style="margin:auto;">
+        <div class="del-body">
+            <div class="del-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="del-question">Are you sure you want to delete this teacher?</div>
+            <div class="del-info">
+                <div class="del-row"><span>Teacher Number :</span> #<span id="delId"></span></div>
+                <div class="del-row"><span>Name :</span> <span id="delName"></span></div>
+            </div>
+        </div>
+        <div class="del-actions">
+            <button class="btn btn-back" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()"><i class="bi bi-trash-fill"></i> Delete Teachers</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'https://localhost:7152/api/teachers';
+    let deleteId = null;
+
+    async function loadTeachers() {
+      try {
+        const data = await fetch(API).then(r => r.json());
+        document.getElementById('teacherCount').textContent = `Showing ${data.length} teachers`;
+        const tbody = document.getElementById('teacherBody');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="4" class="td-empty">No teachers found.</td></tr>'; return; }
+        tbody.innerHTML = data.map((t, i) => `
+          <tr>
+            <td class="td-id">${i + 1}</td>
+            <td>${t.firstName} ${t.lastName}</td>
+            <td>${t.email}</td>
+            <td class="td-act">
+              <a class="ib ib-edit" onclick="openEditModal(${t.id},'${t.firstName}','${t.lastName}','${t.email}')" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+              <a class="ib ib-delete" onclick="openDeleteModal(${t.id},'${t.firstName} ${t.lastName}')" title="Delete"><i class="bi bi-trash-fill"></i></a>
+            </td>
+          </tr>`).join('');
+      } catch { document.getElementById('teacherBody').innerHTML = '<tr><td colspan="4" class="td-empty">Could not load teachers. Is the API running?</td></tr>'; }
+    }
+
+    function openAddModal() {
+      ['teacherId','teacherNumber','firstName','lastName','email'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('modalTitle').textContent = 'Add Teachers Details';
+      document.getElementById('saveBtn').innerHTML = '<i class="bi bi-plus-lg"></i> Add Teachers';
+      document.getElementById('teacherModal').style.display = 'flex';
+    }
+    function openEditModal(id, fn, ln, em) {
+      document.getElementById('teacherId').value = id;
+      document.getElementById('teacherNumber').value = id;
+      document.getElementById('firstName').value = fn;
+      document.getElementById('lastName').value = ln;
+      document.getElementById('email').value = em;
+      document.getElementById('modalTitle').textContent = 'Edit Teachers Details';
+      document.getElementById('saveBtn').innerHTML = '<i class="bi bi-arrow-repeat"></i> Update Teachers';
+      document.getElementById('teacherModal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('teacherModal').style.display = 'none'; }
+    async function saveTeacher() {
+      const id = document.getElementById('teacherId').value;
+      const body = { firstName: document.getElementById('firstName').value, lastName: document.getElementById('lastName').value, email: document.getElementById('email').value };
+      await fetch(id ? `${API}/${id}` : API, { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      closeModal(); loadTeachers();
+    }
+    function openDeleteModal(id, name) { deleteId = id; document.getElementById('delId').textContent = id; document.getElementById('delName').textContent = name; document.getElementById('deleteModal').style.display = 'flex'; }
+    function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
+    async function confirmDelete() { await fetch(`${API}/${deleteId}`, { method: 'DELETE' }); closeDeleteModal(); loadTeachers(); }
+
+    loadTeachers();
+</script>
