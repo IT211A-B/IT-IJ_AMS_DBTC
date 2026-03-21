@@ -1,0 +1,45 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="g-search">
+    <i class="bi bi-search"></i>
+    <input type="text" placeholder="Search by name or email ...">
+</div>
+
+<div class="page-hd">
+    <h2>Dashboard</h2>
+    <p>Welcome back, Admin — @DateTime.Now.ToString("dddd, MMMM d, yyyy")</p>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Total Students</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--green-dark);" id="statStudents">—</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Total Teachers</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--green-dark);" id="statTeachers">—</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Total Courses</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--green-dark);" id="statCourses">—</div>
+    </div>
+</div>
+
+<script>
+    const BASE = 'https://localhost:7152/api';
+    async function loadStats() {
+      try {
+        const [s, t, c] = await Promise.all([
+          fetch(`${BASE}/students`).then(r => r.json()),
+          fetch(`${BASE}/teachers`).then(r => r.json()),
+          fetch(`${BASE}/courses`).then(r => r.json()),
+        ]);
+        document.getElementById('statStudents').textContent = s.length;
+        document.getElementById('statTeachers').textContent = t.length;
+        document.getElementById('statCourses').textContent  = c.length;
+      } catch { /* API not connected yet */ }
+    }
+    loadStats();
+</script>
