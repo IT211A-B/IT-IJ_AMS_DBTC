@@ -6,9 +6,9 @@ namespace AMS_Backend.Services.ServiceCourse
     public interface ICourseService
     {
         Task<IEnumerable<ReadCourseDTO>> GetAllCourses();
-        Task<ReadCourseDTO> GetCourseById(int id);
+        Task<ReadCourseDTO> GetCourseById(Guid id);
         Task<ReadCourseDTO> AddCourse(CreateCourseDTO courseDto);
-        Task UpdateCourse(int id, UpdateCourseDTO courseDto);
-        Task DeleteCourse(int id);
+        Task UpdateCourse(Guid id, UpdateCourseDTO courseDto);
+        Task DeleteCourse(Guid id);
     }
 }

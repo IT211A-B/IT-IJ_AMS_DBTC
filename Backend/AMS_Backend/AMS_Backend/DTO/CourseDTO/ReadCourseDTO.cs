@@ -2,7 +2,7 @@
 {
     public class ReadCourseDTO
     {
-        public int CourseId { get; set; }
+        public Guid CourseId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
     }

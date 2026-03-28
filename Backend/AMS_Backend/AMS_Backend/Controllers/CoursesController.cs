@@ -41,7 +41,7 @@ namespace AMS_Backend.Controllers
         /// <response code="200">Course found</response>
         /// <response code="404">Course not found</response>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ReadCourseDTO>> GetCourse(int id)
+        public async Task<ActionResult<ReadCourseDTO>> GetCourse(Guid id)
         {
             var course = await _courseService.GetCourseById(id);
             if (course == null) return NotFound();
@@ -67,7 +67,7 @@ namespace AMS_Backend.Controllers
         /// <response code="204">Course updated successfully</response>
         /// <response code="404">Course not found</response>
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCourse(int id, UpdateCourseDTO courseDto)
+        public async Task<IActionResult> PutCourse(Guid id, UpdateCourseDTO courseDto)
         {
             await _courseService.UpdateCourse(id, courseDto);
             return NoContent();
@@ -80,7 +80,7 @@ namespace AMS_Backend.Controllers
         /// <response code="204">Course deleted successfully</response>
         /// <response code="404">Course not found</response>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCourse(int id)
+        public async Task<IActionResult> DeleteCourse(Guid id)
         {
             await _courseService.DeleteCourse(id);
             return NoContent();

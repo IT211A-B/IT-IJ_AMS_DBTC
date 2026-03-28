@@ -50,11 +50,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Course", b =>
                 {
-                    b.Property<int>("CourseId")
+                    b.Property<Guid>("CourseId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CourseId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("CourseName")
                         .IsRequired()
@@ -71,11 +69,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Student", b =>
                 {
-                    b.Property<int>("StudentId")
+                    b.Property<Guid>("StudentId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StudentId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -96,11 +92,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Teacher", b =>
                 {
-                    b.Property<int>("TeacherId")
+                    b.Property<Guid>("TeacherId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TeacherId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()

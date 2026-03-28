@@ -24,7 +24,7 @@ namespace AMS_Backend.Services.ServiceCourse
             });
         }
 
-        public async Task<ReadCourseDTO> GetCourseById(int id)
+        public async Task<ReadCourseDTO> GetCourseById(Guid id)
         {
             var c = await _repository.GetByIdAsync(id);
             if (c == null) return null;
@@ -55,7 +55,7 @@ namespace AMS_Backend.Services.ServiceCourse
             };
         }
 
-        public async Task UpdateCourse(int id, UpdateCourseDTO courseDto)
+        public async Task UpdateCourse(Guid id, UpdateCourseDTO courseDto)
         {
             var c = await _repository.GetByIdAsync(id);
             if (c == null) return;
@@ -66,7 +66,7 @@ namespace AMS_Backend.Services.ServiceCourse
             await _repository.UpdateAsync(c);
         }
 
-        public async Task DeleteCourse(int id)
+        public async Task DeleteCourse(Guid id)
         {
             var c = await _repository.GetByIdAsync(id);
             if (c != null)

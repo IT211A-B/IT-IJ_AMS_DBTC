@@ -6,9 +6,9 @@ namespace AMS_Backend.Services.ServiceStudent
     public interface IStudentService
     {
         Task<IEnumerable<ReadStudentDTO>> GetAllStudents();
-        Task<ReadStudentDTO> GetStudentById(int id);
+        Task<ReadStudentDTO> GetStudentById(Guid id);
         Task<ReadStudentDTO> AddStudent(CreateStudentDTO dto);
-        Task UpdateStudent(int id, UpdateStudentDTO dto);
-        Task DeleteStudent(int id);
+        Task UpdateStudent(Guid id, UpdateStudentDTO dto);
+        Task DeleteStudent(Guid id);
     }
 }

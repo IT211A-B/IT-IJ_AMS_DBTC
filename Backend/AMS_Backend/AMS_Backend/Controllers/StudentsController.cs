@@ -41,7 +41,7 @@ namespace AMS_Backend.Controllers
         /// <response code="200">Student found</response>
         /// <response code="404">Student not found</response>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ReadStudentDTO>> GetStudent(int id)
+        public async Task<ActionResult<ReadStudentDTO>> GetStudent(Guid id)
         {
             var student = await _studentService.GetStudentById(id);
 
@@ -73,7 +73,7 @@ namespace AMS_Backend.Controllers
         /// <response code="204">Student updated successfully</response>
         /// <response code="404">Student not found</response>
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutStudent(int id, UpdateStudentDTO dto)
+        public async Task<IActionResult> PutStudent(Guid id, UpdateStudentDTO dto)
         {
             await _studentService.UpdateStudent(id, dto);
             return NoContent();
@@ -87,7 +87,7 @@ namespace AMS_Backend.Controllers
         /// <response code="204">Student deleted successfully</response>
         /// <response code="404">Student not found</response>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteStudent(int id)
+        public async Task<IActionResult> DeleteStudent(Guid id)
         {
             await _studentService.DeleteStudent(id);
             return NoContent();
