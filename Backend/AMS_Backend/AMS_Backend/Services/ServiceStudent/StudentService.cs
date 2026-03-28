@@ -27,7 +27,7 @@ namespace AMS_Backend.Services.ServiceStudent
         }
 
         // GET BY ID
-        public async Task<ReadStudentDTO> GetStudentById(int id)
+        public async Task<ReadStudentDTO> GetStudentById(Guid id)
         {
             var s = await _repository.GetByIdAsync(id);
 
@@ -62,7 +62,7 @@ namespace AMS_Backend.Services.ServiceStudent
         }
 
         // UPDATE
-        public async Task UpdateStudent(int id, UpdateStudentDTO dto)
+        public async Task UpdateStudent(Guid id, UpdateStudentDTO dto)
         {
             var student = await _repository.GetByIdAsync(id);
 
@@ -77,7 +77,7 @@ namespace AMS_Backend.Services.ServiceStudent
         }
 
         // DELETE
-        public async Task DeleteStudent(int id)
+        public async Task DeleteStudent(Guid id)
         {
             var student = await _repository.GetByIdAsync(id);
 

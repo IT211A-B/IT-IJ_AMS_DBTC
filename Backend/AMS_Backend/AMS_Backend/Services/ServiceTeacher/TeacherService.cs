@@ -24,7 +24,7 @@ namespace AMS_Backend.Services.ServiceTeacher
             });
         }
 
-        public async Task<ReadTeacherDTO> GetTeacherById(int id)
+        public async Task<ReadTeacherDTO> GetTeacherById(Guid id)
         {
             var t = await _repository.GetByIdAsync(id);
             if (t == null) return null;
@@ -56,7 +56,7 @@ namespace AMS_Backend.Services.ServiceTeacher
             };
         }
 
-        public async Task UpdateTeacher(int id, UpdateTeacherDTO teacherDto)
+        public async Task UpdateTeacher(Guid id, UpdateTeacherDTO teacherDto)
         {
             var t = await _repository.GetByIdAsync(id);
             if (t == null) return;
@@ -68,7 +68,7 @@ namespace AMS_Backend.Services.ServiceTeacher
             await _repository.UpdateAsync(t);
         }
 
-        public async Task DeleteTeacher(int id)
+        public async Task DeleteTeacher(Guid id)
         {
             var t = await _repository.GetByIdAsync(id);
             if (t != null)

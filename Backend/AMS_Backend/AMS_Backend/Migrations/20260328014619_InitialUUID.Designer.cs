@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AMS_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260319223843_RemoveTeacherIDFromCourse")]
-    partial class RemoveTeacherIDFromCourse
+    [Migration("20260328014619_InitialUUID")]
+    partial class InitialUUID
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -53,11 +53,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Course", b =>
                 {
-                    b.Property<int>("CourseId")
+                    b.Property<Guid>("CourseId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CourseId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("CourseName")
                         .IsRequired()
@@ -74,11 +72,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Student", b =>
                 {
-                    b.Property<int>("StudentId")
+                    b.Property<Guid>("StudentId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StudentId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -99,11 +95,9 @@ namespace AMS_Backend.Migrations
 
             modelBuilder.Entity("AMS_Backend.Models.Teacher", b =>
                 {
-                    b.Property<int>("TeacherId")
+                    b.Property<Guid>("TeacherId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TeacherId"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
