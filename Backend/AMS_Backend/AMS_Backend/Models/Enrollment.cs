@@ -2,21 +2,14 @@
 
 namespace AMS_Backend.Models
 {
-    public class Attendance
+    public class Enrollment
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        [Required]
-        public DateOnly Date { get; set; }
+        public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
 
-        [Required]
         [MaxLength(20)]
-        public string Status { get; set; } = string.Empty; // Present, Absent, Late, Excused
-
-        [MaxLength(500)]
-        public string? Remarks { get; set; }
-
-        public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+        public string Status { get; set; } = "Active"; // Active, Dropped, Completed
 
         // Foreign keys
         public Guid StudentId { get; set; }

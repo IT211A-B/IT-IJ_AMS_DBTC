@@ -1,12 +1,12 @@
-﻿using AMS_Backend.DTO.StudentDTO;
+﻿using AMS_Backend.Common;
 using AMS_Backend.DTO.TeacherDTO;
 using AMS_Backend.Services.ServiceTeacher;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AMS_Backend.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/Teachers")]
     public class TeachersController : ControllerBase
     {
         private readonly ITeacherService _teacherService;
@@ -17,74 +17,109 @@ namespace AMS_Backend.Controllers
         }
 
         /// <summary>
-        /// Get all teachers with optional pagination
+        /// Retrieves all teachers in the system.
         /// </summary>
-        /// <param name="page">Page number (default = 1)</param>
-        /// <param name="pageSize">Number of records per page (default = 10)</param>
-        /// <response code="200">Returns list of teachers</response>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadTeacherDTO>>> GetTeachers(int page = 1, int pageSize = 10)
+        /// <remarks>
+        /// - If <b>id</b> is provided, returns a single-teacher list. 404 if not found.<br/>
+        /// - If no <b>id</b>, returns a paged list. 204 if no data.<br/>
+        /// - If <b>search</b> is provided, filters results by searching in EmployeeNumber, FirstName, LastName, Email, or Department.
+        /// </remarks>
+        [HttpGet("Get-Teachers")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadTeacherDTO>>>> GetTeachers(
+            [FromQuery] int? page,
+            [FromQuery] int? limit,
+            [FromQuery] Guid? id,
+            [FromQuery] string? search)
         {
-            var teachers = await _teacherService.GetAllTeachers();
+            // Return single teacher by ID
+            if (id.HasValue)
+            {
+                var teacher = await _teacherService.GetTeacherByIdAsync(id.Value);
+                if (teacher is null)
+                    return NotFound(ApiResponse<IEnumerable<ReadTeacherDTO>>.NotFound(
+                        $"Teacher with ID '{id}' was not found."));
 
-            var paged = teachers
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                return Ok(ApiResponse<IEnumerable<ReadTeacherDTO>>.Ok(
+                    new List<ReadTeacherDTO> { teacher }));
+            }
 
-            return Ok(paged);
-        }
+            var all = await _teacherService.GetAllTeachersAsync();
 
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                all = all.Where(t =>
+                    t.EmployeeNumber.ToLower().Contains(term) ||
+                    t.FirstName.ToLower().Contains(term) ||
+                    t.LastName.ToLower().Contains(term) ||
+                    t.Email.ToLower().Contains(term) ||
+                    (t.Department != null && t.Department.ToLower().Contains(term)));
+            }
 
-        /// <summary>
-        /// Get a single teacher by ID
-        /// </summary>
-        /// <param name="id">Teacher ID</param>
-        /// <response code="200">Teacher found</response>
-        /// <response code="404">Teacher not found</response>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ReadTeacherDTO>> GetTeacher(Guid id)
-        {
-            var teacher = await _teacherService.GetTeacherById(id);
-            if (teacher == null) return NotFound();
-            return Ok(teacher);
-        }
+            var list = all.ToList();
 
-        /// <summary>
-        /// Create a new teacher
-        /// </summary>
-        /// <response code="201">Teacher created successfully</response>
-        /// <response code="400">Invalid input</response>
-        [HttpPost]
-        public async Task<ActionResult<ReadTeacherDTO>> PostTeacher(CreateTeacherDTO teacherDto)
-        {
-            var teacher = await _teacherService.AddTeacher(teacherDto);
-            return CreatedAtAction(nameof(GetTeacher), new { id = teacher.TeacherId }, teacher);
-        }
+            if (list.Count == 0)
+                return StatusCode(204, ApiResponse<IEnumerable<ReadTeacherDTO>>.Ok(
+                    Enumerable.Empty<ReadTeacherDTO>(), "No data found."));
 
-        /// <summary>
-        /// Update an existing teacher
-        /// </summary>
-        /// <param name="id">Teacher ID</param>
-        /// <response code="204">Teacher updated successfully</response>
-        /// <response code="404">Teacher not found</response>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTeacher(Guid id, UpdateTeacherDTO teacherDto)
-        {
-            await _teacherService.UpdateTeacher(id, teacherDto);
-            return NoContent();
+            // Apply pagination
+            if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+                list = list.Skip((page.Value - 1) * limit.Value).Take(limit.Value).ToList();
+
+            return Ok(ApiResponse<IEnumerable<ReadTeacherDTO>>.Ok(list));
         }
 
         /// <summary>
-        /// Delete a teacher by ID
+        /// Creates a new teacher.
         /// </summary>
-        /// <param name="id">Teacher ID</param>
-        /// <response code="204">Teacher deleted successfully</response>
-        /// <response code="404">Teacher not found</response>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTeacher(Guid id)
+        [HttpPost("Create-Teacher")]
+        public async Task<ActionResult<ApiResponse<ReadTeacherDTO>>> CreateTeacher(
+            [FromBody] CreateTeacherDTO dto)
         {
-            await _teacherService.DeleteTeacher(id);
-            return NoContent();
+            if (await _teacherService.EmployeeNumberExistsAsync(dto.EmployeeNumber))
+                return Conflict(ApiResponse<ReadTeacherDTO>.Fail(
+                    $"Employee number '{dto.EmployeeNumber}' is already in use."));
+
+            if (await _teacherService.EmailExistsAsync(dto.Email))
+                return Conflict(ApiResponse<ReadTeacherDTO>.Fail(
+                    $"Email '{dto.Email}' is already in use."));
+
+            var created = await _teacherService.CreateTeacherAsync(dto);
+            return Ok(ApiResponse<ReadTeacherDTO>.Ok(created, "Teacher created successfully."));
+        }
+
+        /// <summary>
+        /// Updates an existing teacher.
+        /// </summary>
+        [HttpPut("Update-Teacher/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<ReadTeacherDTO>>> UpdateTeacher(
+            Guid id, [FromBody] UpdateTeacherDTO dto)
+        {
+            if (await _teacherService.EmailExistsAsync(dto.Email, excludeId: id))
+                return Conflict(ApiResponse<ReadTeacherDTO>.Fail(
+                    $"Email '{dto.Email}' is already in use by another teacher."));
+
+            var updated = await _teacherService.UpdateTeacherAsync(id, dto);
+            if (updated is null)
+                return NotFound(ApiResponse<ReadTeacherDTO>.NotFound(
+                    $"Teacher with ID '{id}' was not found."));
+
+            return Ok(ApiResponse<ReadTeacherDTO>.Ok(updated, "Teacher updated successfully."));
+        }
+
+        /// <summary>
+        /// Deletes a teacher by ID.
+        /// </summary>
+        [HttpDelete("Delete-Teacher/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteTeacher(Guid id)
+        {
+            var deleted = await _teacherService.DeleteTeacherAsync(id);
+            if (!deleted)
+                return NotFound(ApiResponse<object>.NotFound(
+                    $"Teacher with ID '{id}' was not found."));
+
+            return Ok(ApiResponse<object>.Ok(null!, "Teacher deleted successfully."));
         }
     }
 }

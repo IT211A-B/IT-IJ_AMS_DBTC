@@ -1,12 +1,12 @@
-﻿using AMS_Backend.DTO.CourseDTO;
-using AMS_Backend.DTO.StudentDTO;
+﻿using AMS_Backend.Common;
+using AMS_Backend.DTO.CourseDTO;
 using AMS_Backend.Services.ServiceCourse;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AMS_Backend.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/Courses")]
     public class CoursesController : ControllerBase
     {
         private readonly ICourseService _courseService;
@@ -17,73 +17,108 @@ namespace AMS_Backend.Controllers
         }
 
         /// <summary>
-        /// Get all courses with optional pagination
+        /// Retrieves all courses in the system.
         /// </summary>
-        /// <param name="page">Page number (default = 1)</param>
-        /// <param name="pageSize">Number of records per page (default = 10)</param>
-        /// <response code="200">Returns list of courses</response>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadCourseDTO>>> GetCourse(int page = 1, int pageSize = 10)
+        /// <remarks>
+        /// - If <b>id</b> is provided, returns a single-course list. 404 if not found.<br/>
+        /// - If no <b>id</b>, returns a paged list. 204 if no data.<br/>
+        /// - If <b>search</b> is provided, filters results by searching in CourseCode, CourseName, or TeacherName.<br/>
+        /// - If <b>teacherId</b> is provided, returns only courses assigned to that teacher.
+        /// </remarks>
+        [HttpGet("Get-Courses")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadCourseDTO>>>> GetCourses(
+            [FromQuery] int? page,
+            [FromQuery] int? limit,
+            [FromQuery] Guid? id,
+            [FromQuery] string? search,
+            [FromQuery] Guid? teacherId)
         {
-            var courses = await _courseService.GetAllCourses();
+            // Return single course by ID
+            if (id.HasValue)
+            {
+                var course = await _courseService.GetCourseByIdAsync(id.Value);
+                if (course is null)
+                    return NotFound(ApiResponse<IEnumerable<ReadCourseDTO>>.NotFound(
+                        $"Course with ID '{id}' was not found."));
 
-            var paged = courses 
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                return Ok(ApiResponse<IEnumerable<ReadCourseDTO>>.Ok(
+                    new List<ReadCourseDTO> { course }));
+            }
 
-            return Ok(paged);
+            // Filter by teacher if provided
+            IEnumerable<ReadCourseDTO> all = teacherId.HasValue
+                ? await _courseService.GetCoursesByTeacherAsync(teacherId.Value)
+                : await _courseService.GetAllCoursesAsync();
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                all = all.Where(c =>
+                    c.CourseCode.ToLower().Contains(term) ||
+                    c.CourseName.ToLower().Contains(term) ||
+                    c.TeacherName.ToLower().Contains(term));
+            }
+
+            var list = all.ToList();
+
+            if (list.Count == 0)
+                return StatusCode(204, ApiResponse<IEnumerable<ReadCourseDTO>>.Ok(
+                    Enumerable.Empty<ReadCourseDTO>(), "No data found."));
+
+            // Apply pagination
+            if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+                list = list.Skip((page.Value - 1) * limit.Value).Take(limit.Value).ToList();
+
+            return Ok(ApiResponse<IEnumerable<ReadCourseDTO>>.Ok(list));
         }
 
         /// <summary>
-        /// Get a single course by ID
+        /// Creates a new course.
         /// </summary>
-        /// <param name="id">Course ID</param>
-        /// <response code="200">Course found</response>
-        /// <response code="404">Course not found</response>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ReadCourseDTO>> GetCourse(Guid id)
+        [HttpPost("Create-Course")]
+        public async Task<ActionResult<ApiResponse<ReadCourseDTO>>> CreateCourse(
+            [FromBody] CreateCourseDTO dto)
         {
-            var course = await _courseService.GetCourseById(id);
-            if (course == null) return NotFound();
-            return Ok(course);
+            if (!await _courseService.TeacherExistsAsync(dto.TeacherId))
+                return NotFound(ApiResponse<ReadCourseDTO>.NotFound(
+                    $"Teacher with ID '{dto.TeacherId}' was not found."));
+
+            var created = await _courseService.CreateCourseAsync(dto);
+            return Ok(ApiResponse<ReadCourseDTO>.Ok(created, "Course created successfully."));
         }
 
         /// <summary>
-        /// Create a new course
+        /// Updates an existing course.
         /// </summary>
-        /// <response code="201">Course created successfully</response>
-        /// <response code="400">Invalid input</response>
-        [HttpPost]
-        public async Task<ActionResult<ReadCourseDTO>> PostCourse(CreateCourseDTO courseDto)
+        [HttpPut("Update-Course/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<ReadCourseDTO>>> UpdateCourse(
+            Guid id, [FromBody] UpdateCourseDTO dto)
         {
-            var course = await _courseService.AddCourse(courseDto);
-            return CreatedAtAction(nameof(GetCourse), new { id = course.CourseId }, course);
+            if (!await _courseService.TeacherExistsAsync(dto.TeacherId))
+                return NotFound(ApiResponse<ReadCourseDTO>.NotFound(
+                    $"Teacher with ID '{dto.TeacherId}' was not found."));
+
+            var updated = await _courseService.UpdateCourseAsync(id, dto);
+            if (updated is null)
+                return NotFound(ApiResponse<ReadCourseDTO>.NotFound(
+                    $"Course with ID '{id}' was not found."));
+
+            return Ok(ApiResponse<ReadCourseDTO>.Ok(updated, "Course updated successfully."));
         }
 
         /// <summary>
-        /// Update an existing course
+        /// Deletes a course by ID.
         /// </summary>
-        /// <param name="id">Course ID</param>
-        /// <response code="204">Course updated successfully</response>
-        /// <response code="404">Course not found</response>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCourse(Guid id, UpdateCourseDTO courseDto)
+        [HttpDelete("Delete-Course/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteCourse(Guid id)
         {
-            await _courseService.UpdateCourse(id, courseDto);
-            return NoContent();
-        }
+            var deleted = await _courseService.DeleteCourseAsync(id);
+            if (!deleted)
+                return NotFound(ApiResponse<object>.NotFound(
+                    $"Course with ID '{id}' was not found."));
 
-        /// <summary>
-        /// Delete a course by ID
-        /// </summary>
-        /// <param name="id">Course ID</param>
-        /// <response code="204">Course deleted successfully</response>
-        /// <response code="404">Course not found</response>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCourse(Guid id)
-        {
-            await _courseService.DeleteCourse(id);
-            return NoContent();
+            return Ok(ApiResponse<object>.Ok(null!, "Course deleted successfully."));
         }
     }
 }

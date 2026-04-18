@@ -1,51 +1,66 @@
-using AMS_Backend.Data;
+﻿using AMS_Backend.Data;
+using AMS_Backend.Models;
 using AMS_Backend.Repositories;
+using AMS_Backend.Services.ServiceAttendance;
 using AMS_Backend.Services.ServiceCourse;
+using AMS_Backend.Services.ServiceEnrollment;
 using AMS_Backend.Services.ServiceStudent;
 using AMS_Backend.Services.ServiceTeacher;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
-
-// Register DbContext (connect to PostgreSQL)
+// ── Database ──────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// REGISTER GENERIC REPOSITORY
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+// ── Generic Repositories ──────────────────────────────────────────────────────
+builder.Services.AddScoped<IGenericRepository<Student>, GenericRepository<Student>>();
+builder.Services.AddScoped<IGenericRepository<Teacher>, GenericRepository<Teacher>>();
+builder.Services.AddScoped<IGenericRepository<Course>, GenericRepository<Course>>();
+builder.Services.AddScoped<IGenericRepository<Enrollment>, GenericRepository<Enrollment>>();
+builder.Services.AddScoped<IGenericRepository<Attendance>, GenericRepository<Attendance>>();
+
+// ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
-// Learn more about configuring Swagger/OpenAPI
+// ── Controllers & JSON ────────────────────────────────────────────────────────
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Serialize enums as strings and keep camelCase
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
+// ── Swagger ───────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
-
-    options.IncludeXmlComments(xmlPath);
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "AMS Backend API",
+        Version = "v1",
+        Description = "Attendance Management System API for school use."
+    });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── Middleware Pipeline ───────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -59,5 +74,13 @@ app.UseCors("AllowAll");
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ── Auto-migrate on startup (development only) ────────────────────────────────
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

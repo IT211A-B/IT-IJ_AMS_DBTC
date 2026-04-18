@@ -1,14 +1,15 @@
 ﻿using AMS_Backend.DTO.CourseDTO;
-using AMS_Backend.Models;
 
 namespace AMS_Backend.Services.ServiceCourse
 {
     public interface ICourseService
     {
-        Task<IEnumerable<ReadCourseDTO>> GetAllCourses();
-        Task<ReadCourseDTO> GetCourseById(Guid id);
-        Task<ReadCourseDTO> AddCourse(CreateCourseDTO courseDto);
-        Task UpdateCourse(Guid id, UpdateCourseDTO courseDto);
-        Task DeleteCourse(Guid id);
+        Task<IEnumerable<ReadCourseDTO>> GetAllCoursesAsync();
+        Task<ReadCourseDTO?> GetCourseByIdAsync(Guid id);
+        Task<IEnumerable<ReadCourseDTO>> GetCoursesByTeacherAsync(Guid teacherId);
+        Task<ReadCourseDTO> CreateCourseAsync(CreateCourseDTO dto);
+        Task<ReadCourseDTO?> UpdateCourseAsync(Guid id, UpdateCourseDTO dto);
+        Task<bool> DeleteCourseAsync(Guid id);
+        Task<bool> TeacherExistsAsync(Guid teacherId);
     }
 }
