@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── Generic Repositories ──────────────────────────────────────────────────────
 builder.Services.AddScoped<IGenericRepository<Student>, GenericRepository<Student>>();
@@ -75,12 +75,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ── Auto-migrate on startup (development only) ────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-}
+
 
 app.Run();
