@@ -1,11 +1,12 @@
-﻿using AMS_Backend.DTO.StudentDTO;
+﻿using AMS_Backend.Common;
+using AMS_Backend.DTO.StudentDTO;
 using AMS_Backend.Services.ServiceStudent;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AMS_Backend.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/Students")]
     public class StudentsController : ControllerBase
     {
         private readonly IStudentService _studentService;
@@ -16,81 +17,108 @@ namespace AMS_Backend.Controllers
         }
 
         /// <summary>
-        /// Get all students with optional pagination
+        /// Retrieves all students in the system.
         /// </summary>
-        /// <param name="page">Page number (default = 1)</param>
-        /// <param name="pageSize">Number of records per page (default = 10)</param>
-        /// <response code="200">Returns list of students</response>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadStudentDTO>>> GetStudents(int page = 1, int pageSize = 10)
+        /// <remarks>
+        /// - If <b>id</b> is provided, returns a single-student list. 404 if not found.<br/>
+        /// - If no <b>id</b>, returns a paged list. 204 if no data.<br/>
+        /// - If <b>search</b> is provided, filters results by searching in StudentNumber, FirstName, LastName, or Email.
+        /// </remarks>
+        [HttpGet("Get-Students")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadStudentDTO>>>> GetStudents(
+            [FromQuery] int? page,
+            [FromQuery] int? limit,
+            [FromQuery] Guid? id,
+            [FromQuery] string? search)
         {
-            var students = await _studentService.GetAllStudents();
+            // Return single student by ID
+            if (id.HasValue)
+            {
+                var student = await _studentService.GetStudentByIdAsync(id.Value);
+                if (student is null)
+                    return NotFound(ApiResponse<IEnumerable<ReadStudentDTO>>.NotFound(
+                        $"Student with ID '{id}' was not found."));
 
-            var paged = students
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                return Ok(ApiResponse<IEnumerable<ReadStudentDTO>>.Ok(
+                    new List<ReadStudentDTO> { student }));
+            }
 
-            return Ok(paged);
+            var all = await _studentService.GetAllStudentsAsync();
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                all = all.Where(s =>
+                    s.StudentNumber.ToLower().Contains(term) ||
+                    s.FirstName.ToLower().Contains(term) ||
+                    s.LastName.ToLower().Contains(term) ||
+                    s.Email.ToLower().Contains(term));
+            }
+
+            var list = all.ToList();
+
+            if (list.Count == 0)
+                return StatusCode(204, ApiResponse<IEnumerable<ReadStudentDTO>>.Ok(
+                    Enumerable.Empty<ReadStudentDTO>(), "No data found."));
+
+            // Apply pagination
+            if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+                list = list.Skip((page.Value - 1) * limit.Value).Take(limit.Value).ToList();
+
+            return Ok(ApiResponse<IEnumerable<ReadStudentDTO>>.Ok(list));
         }
 
-        // GET BY ID
         /// <summary>
-        /// Get a single student by ID
+        /// Creates a new student.
         /// </summary>
-        /// <param name="id">Student ID</param>
-        /// <response code="200">Student found</response>
-        /// <response code="404">Student not found</response>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ReadStudentDTO>> GetStudent(Guid id)
+        [HttpPost("Create-Student")]
+        public async Task<ActionResult<ApiResponse<ReadStudentDTO>>> CreateStudent(
+            [FromBody] CreateStudentDTO dto)
         {
-            var student = await _studentService.GetStudentById(id);
+            if (await _studentService.StudentNumberExistsAsync(dto.StudentNumber))
+                return Conflict(ApiResponse<ReadStudentDTO>.Fail(
+                    $"Student number '{dto.StudentNumber}' is already in use."));
 
-            if (student == null)
-                return NotFound();
+            if (await _studentService.EmailExistsAsync(dto.Email))
+                return Conflict(ApiResponse<ReadStudentDTO>.Fail(
+                    $"Email '{dto.Email}' is already in use."));
 
-            return Ok(student);
+            var created = await _studentService.CreateStudentAsync(dto);
+            return Ok(ApiResponse<ReadStudentDTO>.Ok(created, "Student created successfully."));
         }
 
-        // CREATE
         /// <summary>
-        /// Create a new student
+        /// Updates an existing student.
         /// </summary>
-        /// <response code="201">Student created successfully</response>
-        /// <response code="400">Invalid input</response>
-        [HttpPost]
-        public async Task<ActionResult<ReadStudentDTO>> PostStudent(CreateStudentDTO dto)
+        [HttpPut("Update-Student/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<ReadStudentDTO>>> UpdateStudent(
+            Guid id, [FromBody] UpdateStudentDTO dto)
         {
-            var newStudent = await _studentService.AddStudent(dto);
+            if (await _studentService.EmailExistsAsync(dto.Email, excludeId: id))
+                return Conflict(ApiResponse<ReadStudentDTO>.Fail(
+                    $"Email '{dto.Email}' is already in use by another student."));
 
-            return CreatedAtAction(nameof(GetStudent), new { id = newStudent.StudentId }, newStudent);
+            var updated = await _studentService.UpdateStudentAsync(id, dto);
+            if (updated is null)
+                return NotFound(ApiResponse<ReadStudentDTO>.NotFound(
+                    $"Student with ID '{id}' was not found."));
+
+            return Ok(ApiResponse<ReadStudentDTO>.Ok(updated, "Student updated successfully."));
         }
 
-        // UPDATE
         /// <summary>
-        /// Update an existing student
+        /// Deletes a student by ID.
         /// </summary>
-        /// <param name="id">Student ID</param>
-        /// <response code="204">Student updated successfully</response>
-        /// <response code="404">Student not found</response>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutStudent(Guid id, UpdateStudentDTO dto)
+        [HttpDelete("Delete-Student/{id:guid}")]
+        public async Task<ActionResult<ApiResponse<object>>> DeleteStudent(Guid id)
         {
-            await _studentService.UpdateStudent(id, dto);
-            return NoContent();
-        }
+            var deleted = await _studentService.DeleteStudentAsync(id);
+            if (!deleted)
+                return NotFound(ApiResponse<object>.NotFound(
+                    $"Student with ID '{id}' was not found."));
 
-        // DELETE
-        /// <summary>
-        /// Delete a student by ID
-        /// </summary>
-        /// <param name="id">Student ID</param>
-        /// <response code="204">Student deleted successfully</response>
-        /// <response code="404">Student not found</response>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteStudent(Guid id)
-        {
-            await _studentService.DeleteStudent(id);
-            return NoContent();
+            return Ok(ApiResponse<object>.Ok(null!, "Student deleted successfully."));
         }
     }
 }

@@ -1,90 +1,91 @@
-﻿using AMS_Backend.DTO.StudentDTO;
+﻿using AMS_Backend.Data;
+using AMS_Backend.DTO.StudentDTO;
 using AMS_Backend.Models;
 using AMS_Backend.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace AMS_Backend.Services.ServiceStudent
 {
     public class StudentService : IStudentService
     {
-        private readonly IGenericRepository<Student> _repository;
+        private readonly IGenericRepository<Student> _repo;
+        private readonly ApplicationDbContext _context;
 
-        public StudentService(IGenericRepository<Student> repository)
+        public StudentService(IGenericRepository<Student> repo, ApplicationDbContext context)
         {
-            _repository = repository;
+            _repo = repo;
+            _context = context;
         }
 
-        // GET ALL
-        public async Task<IEnumerable<ReadStudentDTO>> GetAllStudents()
+        public async Task<IEnumerable<ReadStudentDTO>> GetAllStudentsAsync()
         {
-            var students = await _repository.GetAllAsync();
-
-            return students.Select(s => new ReadStudentDTO
-            {
-                StudentId = s.StudentId,
-                FullName = s.FirstName + " " + s.LastName,
-                Email = s.Email
-            });
+            var students = await _repo.GetAllAsync();
+            return students.Select(MapToReadDTO);
         }
 
-        // GET BY ID
-        public async Task<ReadStudentDTO> GetStudentById(Guid id)
+        public async Task<ReadStudentDTO?> GetStudentByIdAsync(Guid id)
         {
-            var s = await _repository.GetByIdAsync(id);
-
-            if (s == null) return null;
-
-            return new ReadStudentDTO
-            {
-                StudentId = s.StudentId,
-                FullName = s.FirstName + " " + s.LastName,
-                Email = s.Email
-            };
+            var student = await _repo.GetByIdAsync(id);
+            return student is null ? null : MapToReadDTO(student);
         }
 
-        // CREATE
-        public async Task<ReadStudentDTO> AddStudent(CreateStudentDTO dto)
+        public async Task<ReadStudentDTO> CreateStudentAsync(CreateStudentDTO dto)
         {
             var student = new Student
             {
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                Email = dto.Email
+                FirstName = dto.FirstName.Trim(),
+                LastName = dto.LastName.Trim(),
+                StudentNumber = dto.StudentNumber.Trim(),
+                Email = dto.Email.Trim().ToLower(),
+                ContactNumber = dto.ContactNumber?.Trim(),
+                YearLevel = dto.YearLevel?.Trim(),
+                Program = dto.Program?.Trim()
             };
-
-            await _repository.AddAsync(student);
-
-            return new ReadStudentDTO
-            {
-                StudentId = student.StudentId,
-                FullName = student.FirstName + " " + student.LastName,
-                Email = student.Email
-            };
+            var created = await _repo.CreateAsync(student);
+            return MapToReadDTO(created);
         }
 
-        // UPDATE
-        public async Task UpdateStudent(Guid id, UpdateStudentDTO dto)
+        public async Task<ReadStudentDTO?> UpdateStudentAsync(Guid id, UpdateStudentDTO dto)
         {
-            var student = await _repository.GetByIdAsync(id);
+            var student = await _repo.GetByIdAsync(id);
+            if (student is null) return null;
 
-            if (student != null)
-            {
-                student.FirstName = dto.FirstName;
-                student.LastName = dto.LastName;
-                student.Email = dto.Email;
+            student.FirstName = dto.FirstName.Trim();
+            student.LastName = dto.LastName.Trim();
+            student.Email = dto.Email.Trim().ToLower();
+            student.ContactNumber = dto.ContactNumber?.Trim();
+            student.YearLevel = dto.YearLevel?.Trim();
+            student.Program = dto.Program?.Trim();
 
-                await _repository.UpdateAsync(student);
-            }
+            var updated = await _repo.UpdateAsync(student);
+            return MapToReadDTO(updated);
         }
 
-        // DELETE
-        public async Task DeleteStudent(Guid id)
+        public async Task<bool> DeleteStudentAsync(Guid id)
+            => await _repo.DeleteAsync(id);
+
+        public async Task<bool> StudentNumberExistsAsync(string studentNumber)
+            => await _context.Students.AnyAsync(s => s.StudentNumber == studentNumber.Trim());
+
+        public async Task<bool> EmailExistsAsync(string email, Guid? excludeId = null)
         {
-            var student = await _repository.GetByIdAsync(id);
-
-            if (student != null)
-            {
-                await _repository.DeleteAsync(student);
-            }
+            var query = _context.Students.Where(s => s.Email == email.Trim().ToLower());
+            if (excludeId.HasValue)
+                query = query.Where(s => s.Id != excludeId.Value);
+            return await query.AnyAsync();
         }
+
+        private static ReadStudentDTO MapToReadDTO(Student s) => new()
+        {
+            Id = s.Id,
+            FirstName = s.FirstName,
+            LastName = s.LastName,
+            StudentNumber = s.StudentNumber,
+            Email = s.Email,
+            ContactNumber = s.ContactNumber,
+            YearLevel = s.YearLevel,
+            Program = s.Program,
+            CreatedAt = s.CreatedAt
+        };
     }
 }
